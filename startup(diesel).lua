@@ -1,80 +1,53 @@
--- Define fluid types
-local fluidTypes = {
-    diesel = "diesel",
-    lubricant = "lubricant",
-    air = "air"
-}
+-- Function to find peripherals matching a pattern
+function findPeripherals(pattern)
+    local peripherals = {}
+    for _, name in ipairs(peripheral.getNames()) do
+        if string.match(name, pattern) then
+            table.insert(peripherals, peripheral.wrap(name))
+        end
+    end
+    return peripherals
+end
 
--- Function to push a fixed amount of fluid from a tank to a peripheral
-local function pushFluid(tankPeripheral, peripheralName, amount)
-    if tankPeripheral and peripheral.isPresent(peripheralName) then
-        local amountPushed = tankPeripheral.pushFluid(peripheralName, amount)
-        return amountPushed
+-- Function to push fluid from a tank to a destination
+function pushFluid(tank, destination, amount)
+    local pushed = tank.pushFluid(destination, amount)
+    if pushed == 0 then
+        print("Failed to push fluid from " .. tank.getName() .. " to " .. destination.getName())
     else
-        error("Failed to push fluid from tank to " .. peripheralName)
+        print("Pushed " .. pushed .. " units of fluid from " .. tank.getName() .. " to " .. destination.getName())
     end
 end
 
--- Function to find all peripherals with a given prefix
-local function findPeripherals(prefix)
-    local foundPeripherals = {}
-    for _, side in ipairs(peripheral.getNames()) do
-        if side:find(prefix) then
-            table.insert(foundPeripherals, side)
-        end
-    end
-    return foundPeripherals
-end
-
--- Function to find peripherals with specific fluid types in their tanks
-local function findTanksWithFluid(fluid)
-    local foundTanks = {}
-    for _, side in ipairs(peripheral.getNames()) do
-        if peripheral.hasType(side, "tank") then
-            local tankPeripheral = peripheral.wrap(side)
-            for _, tankInfo in ipairs(tankPeripheral.getTankInfo()) do
-                if tankInfo.name == fluid then
-                    foundTanks[fluid] = side
-                end
-            end
-        end
-    end
-    return foundTanks
-end
-
--- Function to monitor and push fluid to peripherals
-local function monitorSystems()
-    -- Identify relevant tank peripherals
-    local dieselTanks = findTanksWithFluid(fluidTypes.diesel)
-    local lubricantTanks = findTanksWithFluid(fluidTypes.lubricant)
-    local airTanks = findTanksWithFluid(fluidTypes.air)
-
+-- Main function to manage fluid transfer
+function manageFluids()
+    local dieselEngines = findPeripherals("tfmg:diesel_engine_.*")
+    local dieselExpansions = findPeripherals("tfmg:diesel_engine_expansion_.*")
+    
+    -- Debugging output to verify found peripherals
+    print("Found " .. #dieselEngines .. " diesel engines")
+    print("Found " .. #dieselExpansions .. " diesel engine expansions")
+    
+    local tank1 = peripheral.wrap("fluidTank_2")
+    local tank2 = peripheral.wrap("fluidTank_0")
+    local tank3 = peripheral.wrap("fluidTank_1")
     while true do
-        -- Find all expansion and engine peripherals
-        local expansions = findPeripherals("expansion")
-        local engines = findPeripherals("engine")
-
-        -- Push fluids to peripherals
-        for _, engine in ipairs(engines) do
-            for _, tank in pairs(dieselTanks) do
-                pushFluid(peripheral.wrap(tank), engine, 8000)
-            end
-        end
-
-        for _, expansion in ipairs(expansions) do
-            for _, tank in pairs(lubricantTanks) do
-                pushFluid(peripheral.wrap(tank), expansion, 8000)
-            end
-
-            for _, tank in pairs(airTanks) do
-                pushFluid(peripheral.wrap(tank), expansion, 8000)
-            end
-        end
-
-        -- Delay before next check
-        sleep(0.1)
+    -- Push fluid from tank1 to diesel engines
+    for _, engine in ipairs(dieselEngines) do
+    local name = peripheral.getName(engine)
+        tank1.pushFluid(name, 8000) -- Adjust the amount as needed
+    end
+    
+    -- Push fluid from tank2 and tank3 to diesel engine expansions
+    for _, expansion in ipairs(dieselExpansions) do
+    local expansion1 = peripheral.getName(expansion)
+        tank2.pushFluid(expansion1, 8000) -- Adjust the amount as needed
+        tank3.pushFluid(expansion1, 500) -- Adjust the amount as needed
+    end
     end
 end
-
--- Start monitoring systems
-monitorSystems()
+while true do
+manageFluids()
+sleep(0.1)
+end
+-- Run the fluid management function
